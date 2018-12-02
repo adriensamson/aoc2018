@@ -40,7 +40,7 @@ fn has_exactly_n_times_char(s : &str, n : &usize) -> bool {
         let count = map.get(&c).unwrap_or(&0usize) + 1;
         map.insert(c, count);
     }
-    map.iter().any(|(k, v)| v == n)
+    map.iter().any(|(_k, v)| v == n)
 }
 
 fn almost_same(s1 : &str, s2 : &str) -> Option<String> {

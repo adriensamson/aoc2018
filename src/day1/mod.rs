@@ -1,10 +1,7 @@
-use std::fs::read_to_string;
 use std::str::FromStr;
 use std::collections::HashSet;
 
-pub fn step1() {
-    let input = read_to_string("src/day1/input.txt").unwrap();
-
+pub fn step1(input : String) {
     let sum = input.lines().map(parse_int).fold(0i64, |acc, i| acc + i);
     println!("{}", sum);
 }
@@ -16,9 +13,7 @@ fn parse_int(s: &str) -> i64 {
     i64::from_str(s).unwrap()
 }
 
-pub fn step2() {
-    let input = read_to_string("src/day1/input.txt").unwrap();
-
+pub fn step2(input : String) {
     let mut reached = HashSet::new();
 
     let numbers : Vec<i64> = input.lines().map(parse_int).collect();

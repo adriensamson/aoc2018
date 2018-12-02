@@ -1,9 +1,7 @@
-use std::fs::read_to_string;
 use std::collections::HashMap;
 
-pub fn step1() {
-    let s = read_to_string("src/day2/input.txt").unwrap();
-    let lines : Vec<&str> = s.lines().collect();
+pub fn step1(input : String) {
+    let lines : Vec<&str> = input.lines().collect();
 
     let n2 = lines.iter().filter(|l| has_exactly_n_times_char(l, &2)).count();
     let n3 = lines.iter().filter(|l| has_exactly_n_times_char(l, &3)).count();
@@ -11,9 +9,8 @@ pub fn step1() {
     println!("{} * {} = {}", n2, n3, n2 * n3);
 }
 
-pub fn step2() {
-    let s = read_to_string("src/day2/input.txt").unwrap();
-    let lines : Vec<&str> = s.lines().collect();
+pub fn step2(input : String) {
+    let lines : Vec<&str> = input.lines().collect();
 
     let mut i = 0;
     while i < lines.len() {

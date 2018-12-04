@@ -11,6 +11,15 @@ pub fn step1(input : String) {
     println!("{} * {} = {}", guard, minute, guard * minute);
 }
 
+pub fn step2(input : String) {
+    let nights = parse_input(input);
+    let nights_by_guard = group_by_guard(&nights);
+
+    let (guard, minute) = find_most_asleep_guard_minute(&nights_by_guard);
+    println!("{} * {} = {}", guard, minute, guard * minute);
+}
+
+
 #[derive(Debug, Clone)]
 struct Night {
     guard : usize,
@@ -69,6 +78,12 @@ fn parse_input(input : String) -> Vec<Night> {
             }
         }
     }
+    if let Some(g) = guard {
+        if asleep.is_some() {
+            panic!("asleep not finished");
+        }
+        nights.push(Night {guard: g, asleeps});
+    }
 
     nights
 }
@@ -116,4 +131,27 @@ fn find_most_asleep_minute(nights : &Vec<Night>) -> usize {
             (m1, n1, i + 1)
         }
     }).0
+}
+
+fn find_most_asleep_guard_minute(night_by_guards : &HashMap<usize, Vec<Night>>) -> (usize, usize) {
+    let mut gm = HashMap::new();
+
+    for (&g, nights) in night_by_guards.iter() {
+        for night in nights.iter() {
+            for (from, to) in night.asleeps.iter() {
+                for m in *from..(*to - 1) {
+                    *gm.entry((g, m)).or_default() += 1;
+                }
+            }
+        }
+    }
+
+    let gmn = gm.iter().fold((0, 0, 0), |(g1, m1, n1), ((g2, m2), n2)| {
+        if *n2 > n1 {
+            (*g2, *m2, *n2)
+        } else {
+            (g1, m1, n1)
+        }
+    });
+    (gmn.0, gmn.1)
 }

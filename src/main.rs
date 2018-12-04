@@ -7,9 +7,10 @@ use std::fs::read_to_string;
 mod day1;
 mod day2;
 mod day3;
+mod day4;
 
-const DEFAULT_DAY : i32 = 3;
-const DEFAULT_STEP : i32 = 2;
+const DEFAULT_DAY : i32 = 4;
+const DEFAULT_STEP : i32 = 1;
 const DEFAULT_FILE : &str = "input";
 
 fn main() {
@@ -27,6 +28,7 @@ fn main() {
         (2, 2) => day2::step2(input),
         (3, 1) => day3::step1(input),
         (3, 2) => day3::step2(input),
+        (4, 1) => day4::step1(input),
         _ => println!("Unknown day or step"),
     }
 }

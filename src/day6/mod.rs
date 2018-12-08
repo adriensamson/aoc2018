@@ -9,13 +9,34 @@ pub fn step1(input : String) {
     println!("largest: {}", largest);
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Hash)]
+const MAX_DIST : usize = 10000;
+
+pub fn step2(input : String) {
+    let coords = parse_coords(&input);
+    let (min, max) = get_min_max(&coords);
+    let mut n = 0;
+    for x in min.x..=max.x {
+        for y in min.y..=max.y {
+            let c = Coord {x, y};
+            if coords.iter().fold(0, |acc, coord| acc + c.dist(coord)) < MAX_DIST {
+                n += 1;
+            }
+        }
+    }
+    println!("{}", n);
+}
+
+#[derive(Eq, PartialEq, Copy, Clone, Hash, Debug)]
 struct Coord {
     x: i32,
     y: i32,
 }
 
 impl Coord {
+    fn dist(&self, other : &Coord) -> usize {
+        ((self.x - other.x).abs() + (self.y - other.y).abs()) as usize
+    }
+
     fn north_east(&self, dist : usize, t : usize) -> Coord {
         Coord {
             x: self.x + (t as i32),

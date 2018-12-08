@@ -7,6 +7,12 @@ pub fn step1(input : String) {
     println!("{}", order);
 }
 
+pub fn step2(input : String) {
+    let mut map = parse_input(input);
+    let time = find_order_timed(&mut map);
+    println!("{}", time);
+}
+
 #[derive(Ord, Eq)]
 struct Step {
     name: char,
@@ -92,4 +98,50 @@ fn find_first_avaible(map : &HashMap<char, Step>) -> Option<char> {
     }
     available.sort();
     Some(available[0].name)
+}
+
+const STEP_TIME : i32 = 60;
+const WORKERS : usize = 5;
+
+fn find_order_timed(map : &mut HashMap<char, Step>) -> i32 {
+    let mut s = String::new();
+    let mut running : Vec<(char, i32)> = Vec::new();
+    let mut time = 0;
+    loop {
+        println!("time = {}", time);
+        for r in &running {
+            if r.1 <= time {
+                map.get_mut(&r.0).unwrap().mark_done();
+                s.push(r.0);
+                println!("finished: {} -> {}", r.0, s);
+            }
+        }
+        running = running.iter().filter(|r| r.1 > time).map(|r| *r).collect();
+        for av in find_available_timed(map, &running.iter().map(|(c, _)| *c).collect()) {
+            if running.len() >= WORKERS {
+                println!("not enough workers");
+                break;
+            }
+            println!("start {} (depends on {:?}) until {}", av, map.get(&av).unwrap().reqs, time + STEP_TIME + char_to_time(av));
+            running.push((av, time + STEP_TIME + char_to_time(av)));
+        }
+        println!("running : {:?}", running);
+        if running.len() == 0 {
+            return time;
+        }
+        time += 1;
+    }
+}
+
+fn char_to_time(c : char) -> i32 {
+    c as i32 - b'A' as i32 + 1
+}
+
+fn find_available_timed(map : &HashMap<char, Step>, running: &Vec<char>) -> Vec<char> {
+    let mut available : Vec<&Step> = map.values().filter(|s| !running.iter().any(|&c| c == s.name) && !s.done && s.available(map)).collect();
+    if available.len() == 0 {
+        return Vec::new();
+    }
+    available.sort();
+    available.iter().map(|s| s.name).collect()
 }

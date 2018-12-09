@@ -4,6 +4,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
 use core::fmt::Write;
+use std::collections::VecDeque;
 
 pub fn step1(input : String) {
     let (players, last_marble) = get_config(&input);
@@ -33,34 +34,63 @@ fn get_config(s : &str) -> (usize, usize) {
 }
 
 struct Circle {
-    marbles : Vec<usize>,
-    current_index : usize,
+    before : VecDeque<usize>,
+    after : VecDeque<usize>,
+    current : usize,
 }
 
 impl Circle {
     fn new() -> Circle {
         Circle {
-            marbles: vec![0],
-            current_index: 0,
+            before: VecDeque::new(),
+            after: VecDeque::new(),
+            current: 0,
         }
     }
 
     fn do_insert(&mut self, m : usize) {
-        let insert_after_idx = (self.current_index + 1) % self.marbles.len();
-        self.marbles.insert(insert_after_idx + 1, m);
-        self.current_index = insert_after_idx + 1;
+        if self.after.len() >= 1 {
+            self.before.push_back(self.current);
+            self.before.push_back(self.after.pop_front().unwrap());
+            self.current = m;
+        } else {
+            self.before.push_back(self.current);
+            self.after.push_front(self.before.pop_front().unwrap());
+            std::mem::swap(&mut self.before, &mut self.after);
+            self.current = m;
+        }
     }
 
     fn do_remove(&mut self) -> usize {
-        let remove_idx = (self.current_index + self.marbles.len() - 7) % self.marbles.len();
-        let removed = self.marbles.remove(remove_idx);
-        self.current_index = remove_idx % self.marbles.len();
-        removed
+        //println!("{}", self);
+        if self.before.len() >= 7 {
+            self.after.push_front(self.current);
+            for _ in 0..5 {
+                self.after.push_front(self.before.pop_back().unwrap());
+
+            }
+            self.current = self.before.pop_back().unwrap();
+            self.before.pop_back().unwrap()
+        } else {
+            let len = self.before.len();
+            self.after.push_front(self.current);
+            for _ in 0..len {
+                self.after.push_front(self.before.pop_back().unwrap());
+            }
+            std::mem::swap(&mut self.before, &mut self.after);
+            for _ in len..5 {
+                self.after.push_front(self.before.pop_back().unwrap());
+            }
+            self.current = self.before.pop_back().unwrap();
+            self.before.pop_back().unwrap()
+        }
     }
 
     fn next(&mut self, m : usize) -> usize {
         if m % 23 == 0 {
-            m + self.do_remove()
+            let removed = self.do_remove();
+            println!("removed: {}", removed);
+            m + removed
         } else {
             self.do_insert(m); 0
         }
@@ -69,16 +99,7 @@ impl Circle {
 
 impl Display for Circle {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        for (i, &m) in self.marbles.iter().enumerate() {
-            if i == self.current_index {
-                f.write_char('*');
-            } else {
-                f.write_char(' ');
-            }
-            let s = format!("{}", m);
-            f.write_str(&s);
-        }
-
-        Result::Ok(())
+        let s = format!("{:?} *{}* {:?}", self.before, self.current, self.after);
+        f.write_str(&s)
     }
 }

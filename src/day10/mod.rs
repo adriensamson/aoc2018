@@ -20,6 +20,25 @@ pub fn step1(input : String) {
     display(&coords);
 }
 
+pub fn step2(input : String) {
+    let points = parse_points(&input);
+    let mut t = 0;
+    let mut coords = get_points_at(&points, 0);
+    let mut area = get_area(&coords);
+    loop {
+        t += 1;
+        let new_coords = get_points_at(&points, t);
+        let new_area = get_area(&new_coords);
+        if new_area > area {
+            println!("{}", t - 1);
+            break;
+        }
+        coords = new_coords;
+        area = new_area;
+
+    }
+}
+
 struct Point {
     origin: (i64, i64),
     velocity: (i64, i64),

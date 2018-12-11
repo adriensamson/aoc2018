@@ -1,6 +1,5 @@
 use regex::Regex;
 use std::str::FromStr;
-use std::collections::HashSet;
 
 pub fn step1(input : String) {
     let points = parse_points(&input);
@@ -23,7 +22,7 @@ pub fn step1(input : String) {
 pub fn step2(input : String) {
     let points = parse_points(&input);
     let mut t = 0;
-    let mut coords = get_points_at(&points, 0);
+    let coords = get_points_at(&points, 0);
     let mut area = get_area(&coords);
     loop {
         t += 1;
@@ -33,9 +32,7 @@ pub fn step2(input : String) {
             println!("{}", t - 1);
             break;
         }
-        coords = new_coords;
         area = new_area;
-
     }
 }
 

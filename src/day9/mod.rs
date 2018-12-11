@@ -3,7 +3,6 @@ use std::str::FromStr;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
-use core::fmt::Write;
 use std::collections::VecDeque;
 
 pub fn step1(input : String) {

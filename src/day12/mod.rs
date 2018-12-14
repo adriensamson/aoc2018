@@ -14,8 +14,41 @@ pub fn step1(input : String) {
     }
 }
 
+pub fn step2(input : String) {
+    let (initial, rules) = parse_input(&input);
+    let mut state = initial;
+    let mut seen = HashMap::new();
+    let mut i = 0i64;
+    seen.insert(state.plants.clone(), (0, state.offset));
+
+    let mut loop_info = None;
+
+    loop {
+        i += 1;
+        state = state.apply_rules(&rules);
+        if let Some((step, offset)) = seen.get(&state.plants) {
+            println!("{}: {} [{}]", i, &state, state.sum());
+            println!("found loop: {} = {}", i, step);
+            loop_info = Some((i - step, state.offset - offset));
+            break;
+        }
+        seen.insert(state.plants.clone(), (i, state.offset));
+    }
+
+    let (diff_i, diff_offset) = loop_info.unwrap();
+    let n_loop = (50_000_000_000 - i) / diff_i;
+    let offset = state.offset + diff_offset * n_loop;
+    i += n_loop;
+    state = State {
+        offset,
+        plants: state.plants,
+    };
+    println!("{}: {} [{}]", i, &state, state.sum());
+}
+
+#[derive(Eq, PartialEq, Hash, Clone)]
 struct State {
-    offset : i32,
+    offset : i64,
     plants : Vec<bool>,
 }
 
@@ -46,7 +79,7 @@ impl State {
         plants.push(*rules.get(&(self.plants[self.plants.len() - 1], false, false, false, false)).unwrap_or(&false));
 
         for _i in 0..4 {
-            if offset < 0 && !plants[0] {
+            if plants.len() > 10 && !plants[0] {
                 offset += 1;
                 plants.remove(0);
             }
@@ -61,8 +94,8 @@ impl State {
         }
     }
 
-    fn sum(&self) -> i32 {
-        self.plants.iter().enumerate().filter(|(_, v)| **v).map(|(k, _)| k as i32 + self.offset).sum()
+    fn sum(&self) -> i64 {
+        self.plants.iter().enumerate().filter(|(_, v)| **v).map(|(k, _)| k as i64 + self.offset).sum()
     }
 }
 

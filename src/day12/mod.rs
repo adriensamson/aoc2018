@@ -21,21 +21,17 @@ pub fn step2(input : String) {
     let mut i = 0i64;
     seen.insert(state.plants.clone(), (0, state.offset));
 
-    let mut loop_info = None;
-
-    loop {
+    let (diff_i, diff_offset) = loop {
         i += 1;
         state = state.apply_rules(&rules);
         if let Some((step, offset)) = seen.get(&state.plants) {
             println!("{}: {} [{}]", i, &state, state.sum());
             println!("found loop: {} = {}", i, step);
-            loop_info = Some((i - step, state.offset - offset));
-            break;
+            break (i - step, state.offset - offset);
         }
         seen.insert(state.plants.clone(), (i, state.offset));
-    }
+    };
 
-    let (diff_i, diff_offset) = loop_info.unwrap();
     let n_loop = (50_000_000_000 - i) / diff_i;
     let offset = state.offset + diff_offset * n_loop;
     i += n_loop;

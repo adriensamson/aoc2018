@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::cmp::Ordering;
 
 pub fn step1(input : String) {
     let (map, mut carts) = parse_map(&input);
@@ -14,6 +15,41 @@ pub fn step1(input : String) {
             }
         }
     }
+}
+
+pub fn step2(input : String) {
+    let (map, mut carts) = parse_map(&input);
+    loop {
+        carts.sort_by(|c1, c2| c1.cmp_pos(c2));
+        let mut i = 0;
+        while i < carts.len() {
+            carts[i].advance(&map);
+            let mut j = 0;
+            let mut removed = false;
+            while j < carts.len() {
+                if i != j && carts[i].pos == carts[j].pos {
+                    println!("Collision at {},{}", carts[i].pos.0, carts[i].pos.1);
+                    if i < j {
+                        carts.remove(j);
+                        carts.remove(i);
+                    } else {
+                        carts.remove(i);
+                        carts.remove(j);
+                        i -= 1;
+                    }
+                    removed = true;
+                }
+                j += 1;
+            }
+            if !removed {
+                i += 1;
+            }
+        }
+        if carts.len() == 1 {
+            break;
+        }
+    }
+    println!("Last position at {},{}", carts[0].pos.0, carts[0].pos.1);
 }
 
 type Coord = (usize, usize);
@@ -117,6 +153,20 @@ impl Cart {
             }
             Rail::Curve => self.direction = self.direction.curve(),
             Rail::CurveAnti => self.direction = self.direction.curve_anti(),
+        }
+    }
+
+    fn cmp_pos(&self, other : &Self) -> Ordering {
+        if self.pos.1 < other.pos.1 {
+            Ordering::Less
+        } else if self.pos.1 < other.pos.1 {
+            Ordering::Greater
+        } else if self.pos.0 < other.pos.0 {
+            Ordering::Less
+        } else if self.pos.0 > other.pos.0 {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
         }
     }
 }

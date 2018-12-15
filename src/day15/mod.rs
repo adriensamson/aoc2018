@@ -9,7 +9,7 @@ pub fn step1(input : String) {
     let mut i = 0;
     loop {
         println!("{}", i);
-        println!("{}", map);
+        //println!("{}", map);
         match map.run_round() {
             Ok(_) => i += 1,
             Err(_) => break,
@@ -18,6 +18,34 @@ pub fn step1(input : String) {
     let hp_sum : i32 = map.units.iter().map(|u| u.hp as i32).sum();
     println!("{}", i * hp_sum);
 }
+
+pub fn step2(input : String) {
+    let init_map = parse_map(&input);
+    let n_elves = init_map.units.iter().filter(|u| u.kind == UnitKind::Elf).count();
+    let mut elf_power = 4;
+    let outcome = loop {
+        println!("elf power = {}", elf_power);
+        let mut map = init_map.clone();
+        map.elf_power = elf_power;
+        let mut i = 0;
+        loop {
+            match map.run_round() {
+                Ok(_) => i += 1,
+                Err(_) => break,
+            }
+        }
+        if map.units.iter().filter(|u| u.kind == UnitKind::Elf).count() == n_elves {
+            println!("{}", map);
+            let hp_sum : i32 = map.units.iter().map(|u| u.hp as i32).sum();
+            break i * hp_sum;
+        }
+        elf_power += 1;
+    };
+
+    println!("outcome = {}", outcome);
+
+}
+
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash)]
 struct Coord {
@@ -62,6 +90,7 @@ impl UnitKind {
     }
 }
 
+#[derive(Clone)]
 struct Unit {
     kind: UnitKind,
     pos : Coord,
@@ -77,9 +106,11 @@ impl Unit {
     }
 }
 
+#[derive(Clone)]
 struct Map {
     walls : Walls,
     units : Vec<Unit>,
+    elf_power : u8,
 }
 
 enum ShortestPathMove {
@@ -116,8 +147,12 @@ impl Map {
             ).collect();
             adj_targets.sort_by_key(|j| (self.units[*j].hp, self.units[*j].pos));
             if let Some(j) = adj_targets.get(0) {
-                if self.units[*j].hp > 3 {
-                    self.units[*j].hp -= 3;
+                let power = match self.units[i].kind {
+                    UnitKind::Goblin => 3,
+                    UnitKind::Elf => self.elf_power,
+                };
+                if self.units[*j].hp > power {
+                    self.units[*j].hp -= power;
                 } else {
                     self.units.remove(*j);
                     if *j < i {
@@ -205,6 +240,7 @@ fn parse_map(input : &str) -> Map {
     let mut map = Map {
         walls: HashSet::new(),
         units: Vec::new(),
+        elf_power: 3,
     };
     for (y, line) in input.lines().enumerate() {
         for (x, c) in line.chars().enumerate() {

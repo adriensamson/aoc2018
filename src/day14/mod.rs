@@ -12,6 +12,22 @@ pub fn step1(input : String) {
     println!("{}{}{}{}{}{}{}{}{}{}", next_ten[0], next_ten[1], next_ten[2], next_ten[3], next_ten[4], next_ten[5], next_ten[6], next_ten[7], next_ten[8], next_ten[9]);
 }
 
+pub fn step2(input : String) {
+    let searched_scores : Vec<u8> = input.chars().map(|c| u8::from_str(&format!("{}", c)).unwrap()).collect();
+    let mut recipes = Recipes::new();
+    let mut i = 0;
+    'a: loop {
+        while i + searched_scores.len() < recipes.recipes.len() {
+            if (0..searched_scores.len()).all(|j| recipes.recipes[i + j] == searched_scores[j]) {
+                break 'a;
+            }
+            i += 1;
+        }
+        recipes.make_recipes();
+    }
+    println!("{}", i);
+}
+
 struct Recipes {
     elf1_pos : usize,
     elf2_pos : usize,

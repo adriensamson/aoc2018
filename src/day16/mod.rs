@@ -3,9 +3,56 @@ use std::str::FromStr;
 
 pub fn step1(input : String) {
     let (samples, _) = parse_input(&input);
-    let n = samples.iter().filter(|s| sample_nb_possible_ops(s) >= 3).count();
+    let n = samples.iter().filter(|s| sample_possible_ops(s).len() >= 3).count();
     println!("{}", n)
 }
+
+pub fn step2(input : String) {
+    let (samples, prog) = parse_input(&input);
+    let mut possibles : Vec<Option<Vec<&OpFn>>> = (0..16).map(|_| None).collect();
+    for sample in samples.iter() {
+        let opcode = sample.inst.0 as usize;
+        let ops = sample_possible_ops(sample);
+        possibles[opcode] = match possibles[opcode] {
+            None => Some(ops),
+            Some(ref before) => Some(before.iter().filter(|f| ops.contains(f)).map(|&f| f).collect()),
+        }
+    }
+
+    let mut possibles : Vec<Vec<&OpFn>> = possibles.iter().map(|o| o.clone().unwrap()).collect();
+
+    let mut known : Vec<Option<&OpFn>> = (0..16).map(|_| None).collect();
+    while known.iter().any(|k| k.is_none()) {
+        for i in 0..16 {
+            if known[i].is_some() {
+                continue;
+            }
+            if possibles[i].len() == 1 {
+                let f = possibles[i][0];
+                known[i] = Some(f);
+                for j in 0..16 {
+                    if i == j {
+                        continue;
+                    }
+                    possibles[j] = possibles[j].iter().filter(|&&f2| f2 != f).map(|&f| f).collect();
+                }
+            }
+        }
+    }
+
+    let ops : Vec<&OpFn> = known.iter().map(|o| o.clone().unwrap()).collect();
+
+    for (i, fns) in possibles.iter().enumerate() {
+        println!("{}: {}", i, fns.len());
+    }
+
+    let mut regs = Registers::from_tuple((0, 0, 0, 0));
+    for inst in prog {
+        regs = ops[inst.0 as usize]((inst.1, inst.2, inst.3), regs);
+    }
+    println!("reg0 : {}", regs.r0);
+}
+
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 struct Registers {
@@ -156,9 +203,10 @@ fn eqri(args : (u32, u32, u32), input : Registers) -> Registers {
     input.with(args.2, if input.get(args.0) == args.1 { 1 } else { 0 })
 }
 
+type OpFn = fn((u32, u32, u32), Registers) -> Registers;
 
-fn sample_nb_possible_ops(sample : &Sample) -> usize {
+fn sample_possible_ops(sample : &Sample) -> Vec<&OpFn> {
     [addr, addi, mulr, muli, banr, bani, borr, bori, setr, seti, gtrr, gtir, gtri, eqrr, eqir, eqri].iter().filter(|f| {
         f((sample.inst.1, sample.inst.2, sample.inst.3), sample.before) == sample.after
-    }).count()
+    }).collect()
 }

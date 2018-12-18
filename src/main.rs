@@ -22,9 +22,10 @@ mod day14;
 mod day15;
 mod day16;
 mod day17;
+mod day18;
 
-const DEFAULT_DAY : i32 = 17;
-const DEFAULT_STEP : i32 = 2;
+const DEFAULT_DAY : i32 = 18;
+const DEFAULT_STEP : i32 = 1;
 const DEFAULT_FILE : &str = "input";
 
 fn main() {
@@ -70,6 +71,7 @@ fn main() {
         (16, 2) => day16::step2(input),
         (17, 1) => day17::step1(input),
         (17, 2) => day17::step2(input),
+        (18, 1) => day18::step1(input),
         _ => println!("Unknown day or step"),
     }
 }

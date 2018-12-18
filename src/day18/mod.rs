@@ -2,6 +2,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Error;
 use core::fmt::Write;
+use std::collections::HashMap;
 
 pub fn step1(input : String) {
     let mut map = Map::from_str(&input);
@@ -14,7 +15,28 @@ pub fn step1(input : String) {
     println!("{}", map.resource_value());
 }
 
-#[derive(Eq, PartialEq, Copy, Clone)]
+pub fn step2(input : String) {
+    let mut map = Map::from_str(&input);
+    let mut seen = HashMap::new();
+    seen.insert(map.clone(), 0);
+    let mut i = 1;
+    let loop_size = loop {
+        map = map.tick();
+        let j = seen.entry(map.clone()).or_insert(i);
+        if i != *j {
+            println!("found loop {} -> {}", i, j);
+            break *j - i;
+        }
+        i += 1;
+    };
+    let remaining = (1000000000 - i) % loop_size;
+    for _ in 0..remaining {
+        map = map.tick();
+    }
+    println!("{}", map.resource_value());
+}
+
+#[derive(Eq, PartialEq, Copy, Clone, Hash)]
 enum State {
     Open,
     Trees,
@@ -42,7 +64,7 @@ impl Display for State {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash, Eq, PartialEq)]
 struct Map {
     rows : Vec<Vec<State>>,
 }

@@ -16,6 +16,23 @@ pub fn step1(input : String) {
     println!("{}", regs[0]);
 }
 
+pub fn step2(input : String) {
+    let (ip_reg, prog) = parse_prog(&input);
+
+    let mut ip = 0usize;
+    let mut regs = vec![0usize; 6];
+    regs[0] = 1;
+    while ip < prog.len() {
+        regs[ip_reg] = ip;
+        let inst = prog[ip];
+        inst.0(inst.1, &mut regs);
+        ip = regs[ip_reg];
+        ip += 1;
+    }
+    println!("{}", regs[0]);
+}
+
+
 fn parse_prog(input : &str) -> (usize, Vec<(OpFn, (usize, usize, usize))>) {
     let mut ip = None;
     let mut insts = Vec::new();

@@ -2,6 +2,20 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
 pub fn step1(input : String) {
+    let rooms = get_rooms(input);
+
+    let mut roomsv : Vec<((i32, i32), i32)> = rooms.iter().map(|(k, v)| (*k, *v)).collect();
+    roomsv.sort_by_key(|(_, d)| *d);
+    println!("{}", roomsv.last().unwrap().1);
+}
+
+pub fn step2(input : String) {
+    let rooms = get_rooms(input);
+
+    println!("{}", rooms.iter().filter(|(_, v)| **v >= 1000).count());
+}
+
+fn get_rooms(input : String) -> HashMap<(i32, i32), i32> {
     let (route, rest) = parse_route(&input[1..]);
     if &rest[0..1] != "$" {
         panic!("incomplete route");
@@ -21,10 +35,7 @@ pub fn step1(input : String) {
         }
         (to, d + 1)
     }, ((0, 0), 0));
-
-    let mut roomsv : Vec<((i32, i32), i32)> = rooms.iter().map(|(k, v)| (*k, *v)).collect();
-    roomsv.sort_by_key(|(_, d)| *d);
-    println!("{}", roomsv.last().unwrap().1);
+    rooms
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -35,7 +46,7 @@ enum Direction {
     West,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum RouteElement {
     Direction(Direction),
     Options(Vec<Route>),
@@ -119,7 +130,7 @@ fn parse_options(input : &str) -> (Vec<Route>, &str) {
     (options, rest)
 }
 
-fn visit<I : Copy, F : FnMut(Direction, I) -> I>(route : &[RouteElement], f : &mut F, i : I) {
+fn visit<F : FnMut(Direction, ((i32, i32), i32)) -> ((i32, i32), i32)>(route : &[RouteElement], f : &mut F, i : ((i32, i32), i32)) -> Vec<((i32, i32), i32)> {
     let mut acc = i;
     let mut n = 0;
     while n < route.len() {
@@ -129,15 +140,20 @@ fn visit<I : Copy, F : FnMut(Direction, I) -> I>(route : &[RouteElement], f : &m
                 n += 1;
             },
             RouteElement::Options(opts) => {
+                let mut after_opts = Vec::new();
                 for opt in opts {
-                    let mut next = Vec::from(&route[n+1..]);
-                    let mut new_route = opt.clone();
-                    new_route.append(&mut next);
-                    visit(&new_route, f, acc);
+                    after_opts.append(&mut visit(opt, f, acc));
                 }
-                break;
+                after_opts.sort();
+                after_opts.dedup_by_key(|(p, _)| *p);
+                let mut next = &route[n+1..];
+                let mut ends = Vec::new();
+                for acc2 in after_opts {
+                    ends.append(&mut visit(next, f, acc2));
+                }
+                return ends;
             }
         }
     }
-
+    vec![acc]
 }

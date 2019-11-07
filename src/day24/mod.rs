@@ -15,21 +15,34 @@ pub fn step1(input : String) {
         let mut fights: Vec<(usize, usize)> = Vec::new();
         for selecter in selecters {
             let mut others: Vec<usize> = selectables.iter().filter(|i| groups[**i].army != groups[selecter].army).map(|i| *i).collect();
-            others.sort_by(|&g1, &g2| groups[selecter].compute_damage_to(&groups[g1]).cmp(&groups[selecter].compute_damage_to(&groups[g2])).reverse());
+            others.sort_by(|&g1, &g2|
+                groups[selecter].compute_damage_to(&groups[g1]).cmp(&groups[selecter].compute_damage_to(&groups[g2])).reverse()
+                    .then(groups[g1].effective_power().cmp(&groups[g2].effective_power()).reverse())
+                    .then(groups[g1].initiative.cmp(&groups[g2].initiative).reverse())
+            );
             if let Some(selected) = others.get(0) {
-                fights.push((selecter, *selected));
-                selectables.retain(|i| *i != *selected);
+                if groups[selecter].compute_damage_to(&groups[*selected]) > 0 {
+                    fights.push((selecter, *selected));
+                    selectables.retain(|i| *i != *selected);
+                }
             }
         }
         // attacking
         fights.sort_by(|f1, f2| groups[f1.0].initiative.cmp(&groups[f2.0].initiative).reverse());
         for (attacker, defendent) in fights {
             let damage = groups[attacker].compute_damage_to(&groups[defendent]);
+            println!("group {} attacks {} with damage {}", groups[attacker].id, groups[defendent].id, damage);
             groups[defendent].take_damage(damage);
         }
 
         // remove dead
         groups.retain(|g| g.units > 0);
+
+        println!("Immune system:");
+        groups.iter().filter(|g| g.army == Army::ImmuneSystem).for_each(|g| println!("group {} contains {} units", g.id, g.units));
+        println!("Infection:");
+        groups.iter().filter(|g| g.army == Army::Infection).for_each(|g| println!("group {} contains {} units", g.id, g.units));
+
         if groups.iter().filter(|g| g.army == Army::Infection).count() == 0 {
             println!("no more infection");
             break;
@@ -140,7 +153,6 @@ fn parse_input(input : String) -> Vec<Group> {
     }
     if let Some(l) = current_line {
         lines.push((current_army, l));
-        current_line = None;
     }
 
     let line_re = Regex::new(r"(\d+) units each with (\d+) hit points(?: \(([^)]+)\))? with an attack that does (\d+) (\w+) damage at initiative (\d+)").unwrap();
@@ -185,7 +197,7 @@ fn parse_weak_imm(s : &str) -> (Vec<AttackKind>, Vec<AttackKind>) {
     }
 
     for group in s.split("; ") {
-        let (mut v, s2) = if group.starts_with("weak to ") {
+        let (v, s2) = if group.starts_with("weak to ") {
             (&mut weaknesses, group.trim_start_matches("weak to "))
         } else if group.starts_with("immune to ") {
             (&mut immunities, group.trim_start_matches("immune to "))

@@ -4,8 +4,31 @@ use std::iter::FromIterator;
 use std::collections::HashMap;
 
 pub fn step1(input : String) {
-    let mut groups = parse_input(input);
+    let mut groups = parse_input(&input, 0);
+    if let Some((_, remaining)) = run(&mut groups) {
+        println!("remaining units: {}", remaining);
+    }
+}
 
+pub fn step2(input : String) {
+    let mut boost = 0usize;
+    loop {
+        boost += 1;
+        let mut groups = parse_input(&input, boost);
+        println!("with boost {}", boost);
+        if let Some((winning, remaining)) = run(&mut groups) {
+            println!("immune system {}", if winning == Army::ImmuneSystem { "wins" } else { "loses" });
+            println!("remaining units : {}", remaining);
+            if winning == Army::ImmuneSystem {
+                break;
+            }
+        } else {
+            println!("tie");
+        }
+    }
+}
+
+fn run(groups : &mut Vec<Group>) -> Option<(Army, usize)> {
     loop {
         // selection
         let mut selecters: Vec<usize> = Vec::from_iter(0..groups.len());
@@ -27,21 +50,25 @@ pub fn step1(input : String) {
                 }
             }
         }
+
+        if fights.len() == 0 {
+            return None;
+        }
         // attacking
         fights.sort_by(|f1, f2| groups[f1.0].initiative.cmp(&groups[f2.0].initiative).reverse());
         for (attacker, defendent) in fights {
             let damage = groups[attacker].compute_damage_to(&groups[defendent]);
-            println!("group {} attacks {} with damage {}", groups[attacker].id, groups[defendent].id, damage);
+            //println!("group {} attacks {} with damage {}", groups[attacker].id, groups[defendent].id, damage);
             groups[defendent].take_damage(damage);
         }
 
         // remove dead
         groups.retain(|g| g.units > 0);
 
-        println!("Immune system:");
+        /*println!("Immune system:");
         groups.iter().filter(|g| g.army == Army::ImmuneSystem).for_each(|g| println!("group {} contains {} units", g.id, g.units));
         println!("Infection:");
-        groups.iter().filter(|g| g.army == Army::Infection).for_each(|g| println!("group {} contains {} units", g.id, g.units));
+        groups.iter().filter(|g| g.army == Army::Infection).for_each(|g| println!("group {} contains {} units", g.id, g.units));*/
 
         if groups.iter().filter(|g| g.army == Army::Infection).count() == 0 {
             println!("no more infection");
@@ -52,8 +79,7 @@ pub fn step1(input : String) {
             break;
         }
     }
-    let remaining : usize = groups.iter().map(|g| g.units).sum();
-    println!("remaining units: {}", remaining);
+    return Some((groups[0].army, groups.iter().map(|g| g.units).sum()));
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -122,7 +148,7 @@ impl Group {
     }
 }
 
-fn parse_input(input : String) -> Vec<Group> {
+fn parse_input(input : &str, boost : usize) -> Vec<Group> {
     let mut groups = Vec::new();
     let mut current_army = Army::ImmuneSystem;
     let mut current_line : Option<String> = None;
@@ -180,7 +206,7 @@ fn parse_input(input : String) -> Vec<Group> {
             weaknesses,
             immunities,
             attack_kind,
-            attack_damage,
+            attack_damage: if army == Army::Infection { attack_damage } else { attack_damage + boost },
             initiative,
         });
     }

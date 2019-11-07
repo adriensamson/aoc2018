@@ -146,7 +146,7 @@ fn visit<F : FnMut(Direction, ((i32, i32), i32)) -> ((i32, i32), i32)>(route : &
                 }
                 after_opts.sort();
                 after_opts.dedup_by_key(|(p, _)| *p);
-                let mut next = &route[n+1..];
+                let next = &route[n+1..];
                 let mut ends = Vec::new();
                 for acc2 in after_opts {
                     ends.append(&mut visit(next, f, acc2));

@@ -83,7 +83,7 @@ fn find_order(map : &mut HashMap<char, Step>) -> String {
         match find_first_avaible(map) {
             None => { return s; },
             Some(c) => {
-                let mut first = map.get_mut(&c).unwrap();
+                let first = map.get_mut(&c).unwrap();
                 first.mark_done();
                 s.push(first.name);
             }

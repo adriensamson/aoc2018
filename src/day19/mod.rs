@@ -2,129 +2,160 @@ use std::str::FromStr;
 use regex::Regex;
 
 pub fn step1(input : String) {
-    let (ip_reg, prog) = parse_prog(&input);
-
-    let mut ip = 0usize;
-    let mut regs = vec![0usize; 6];
-    while ip < prog.len() {
-        regs[ip_reg] = ip;
-        let inst = prog[ip];
-        inst.0(inst.1, &mut regs);
-        ip = regs[ip_reg];
-        ip += 1;
+    let program = Program::parse_prog(&input);
+    let mut state = State::init();
+    while program.is_running(&state) {
+        program.run_instruction(&mut state);
     }
-    println!("{}", regs[0]);
+    println!("{}", state.get(0));
 }
 
 pub fn step2(input : String) {
-    let (ip_reg, prog) = parse_prog(&input);
+    let program = Program::parse_prog(&input);
+    let mut state = State::init();
 
-    let mut ip = 0usize;
-    let mut regs = vec![0usize; 6];
-    regs[0] = 1;
-    while ip < prog.len() {
-        regs[ip_reg] = ip;
-        let inst = prog[ip];
-        inst.0(inst.1, &mut regs);
-        ip = regs[ip_reg];
-        ip += 1;
+    state.set(0, 1);
+    while program.is_running(&state) {
+        program.run_instruction(&mut state);
     }
-    println!("{}", regs[0]);
+    println!("{}", state.get(0));
 }
 
+struct Program {
+    ip_reg : usize,
+    instructions : Vec<Instruction>,
+}
 
-fn parse_prog(input : &str) -> (usize, Vec<(OpFn, (usize, usize, usize))>) {
-    let mut ip = None;
-    let mut insts = Vec::new();
-    let ip_re = Regex::new(r"#ip (\d)").unwrap();
-    let inst_re = Regex::new(r"(\w+)\s+(\d+)\s+(\d+)\s+(\d+)").unwrap();
+impl Program {
+    pub fn parse_prog(input : &str) -> Program {
+        let mut ip = None;
+        let mut insts = Vec::new();
+        let ip_re = Regex::new(r"#ip (\d)").unwrap();
+        let inst_re = Regex::new(r"(\w+)\s+(\d+)\s+(\d+)\s+(\d+)").unwrap();
 
-    for line in input.lines() {
-        if let Some(caps) = ip_re.captures(line) {
-            ip = Some(usize::from_str(&caps[1]).unwrap());
+        for line in input.lines() {
+            if let Some(caps) = ip_re.captures(line) {
+                ip = Some(usize::from_str(&caps[1]).unwrap());
+            }
+            if let Some(caps) = inst_re.captures(line) {
+                insts.push(Instruction::new(&caps[1], (usize::from_str(&caps[2]).unwrap(), usize::from_str(&caps[3]).unwrap(), usize::from_str(&caps[4]).unwrap())));
+            }
         }
-        if let Some(caps) = inst_re.captures(line) {
-            insts.push((get_op(&caps[1]), (usize::from_str(&caps[2]).unwrap(), usize::from_str(&caps[3]).unwrap(), usize::from_str(&caps[4]).unwrap())))
+        Program {
+            ip_reg: ip.unwrap(),
+            instructions: insts,
         }
     }
-    (ip.unwrap(), insts)
-}
 
-fn get_op(name : &str) -> OpFn {
-    match name {
-        "addr" => addr,
-        "addi" => addi,
-        "mulr" => mulr,
-        "muli" => muli,
-        "banr" => banr,
-        "bani" => bani,
-        "borr" => borr,
-        "bori" => bori,
-        "setr" => setr,
-        "seti" => seti,
-        "gtrr" => gtrr,
-        "gtri" => gtri,
-        "gtir" => gtir,
-        "eqrr" => eqrr,
-        "eqri" => eqri,
-        "eqir" => eqir,
-        _ => panic!(),
+    fn is_running(&self, state : &State) -> bool {
+        state.get(self.ip_reg) < self.instructions.len()
+    }
+
+    fn run_instruction(&self, state : &mut State) {
+        state.set(self.ip_reg, state.ip);
+        let inst = &self.instructions[state.ip];
+        inst.run(state);
+        state.ip = state.get(self.ip_reg);
+        state.ip += 1;
     }
 }
 
-fn addr(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = regs[args.0] + regs[args.1];
-}
-fn addi(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = regs[args.0] + args.1;
+struct Instruction {
+    op : Op,
+    params: (usize, usize, usize),
 }
 
-fn mulr(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = regs[args.0] * regs[args.1];
-}
-fn muli(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = regs[args.0] * args.1;
+impl Instruction {
+    pub fn new(name : &str, params : (usize, usize, usize)) -> Instruction {
+        Instruction {
+            op: Op::from_name(name),
+            params,
+        }
+    }
+
+    fn run(&self, state : &mut State) {
+        match self.op {
+            Op::Addr => state.set(self.params.2, state.get(self.params.0) + state.get(self.params.1)),
+            Op::Addi => state.set(self.params.2, state.get(self.params.0) + self.params.1),
+            Op::Mulr => state.set(self.params.2, state.get(self.params.0) * state.get(self.params.1)),
+            Op::Muli => state.set(self.params.2, state.get(self.params.0) * self.params.1),
+            Op::Banr => state.set(self.params.2, state.get(self.params.0) & state.get(self.params.1)),
+            Op::Bani => state.set(self.params.2, state.get(self.params.0) & self.params.1),
+            Op::Borr => state.set(self.params.2, state.get(self.params.0) | state.get(self.params.1)),
+            Op::Bori => state.set(self.params.2, state.get(self.params.0) | self.params.1),
+            Op::Setr => state.set(self.params.2, state.get(self.params.0)),
+            Op::Seti => state.set(self.params.2, self.params.0),
+            Op::Gtrr => state.set(self.params.2, if state.get(self.params.0) > state.get(self.params.1) { 1 } else { 0 }),
+            Op::Gtri => state.set(self.params.2, if state.get(self.params.0) > self.params.1 { 1 } else { 0 }),
+            Op::Gtir => state.set(self.params.2, if self.params.0 > state.get(self.params.1) { 1 } else { 0 }),
+            Op::Eqrr => state.set(self.params.2, if state.get(self.params.0) == state.get(self.params.1) { 1 } else { 0 }),
+            Op::Eqri => state.set(self.params.2, if state.get(self.params.0) == self.params.1 { 1 } else { 0 }),
+            Op::Eqir => state.set(self.params.2, if self.params.0 == state.get(self.params.1) { 1 } else { 0 }),
+        }
+    }
 }
 
-fn banr(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = regs[args.0] & regs[args.1];
-}
-fn bani(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = regs[args.0] & args.1;
+struct State {
+    ip : usize,
+    regs : Vec<usize>,
 }
 
-fn borr(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = regs[args.0] | regs[args.1];
-}
-fn bori(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = regs[args.0] | args.1;
+impl State {
+    pub fn init() -> State {
+        State {
+            ip: 0,
+            regs: vec![0; 6],
+        }
+    }
+
+    fn get(&self, r : usize) -> usize {
+        self.regs[r]
+    }
+
+    fn set(&mut self, r : usize, val : usize) {
+        self.regs[r] = val;
+    }
 }
 
-fn setr(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = regs[args.0];
-}
-fn seti(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = args.0;
-}
-
-fn gtrr(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = if regs[args.0] > regs[args.1] { 1 } else { 0 };
-}
-fn gtir(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = if args.0 > regs[args.1] { 1 } else { 0 };
-}
-fn gtri(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = if regs[args.0] > args.1 { 1 } else { 0 };
-}
-
-fn eqrr(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = if regs[args.0] == regs[args.1] { 1 } else { 0 };
-}
-fn eqir(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = if args.0 == regs[args.1] { 1 } else { 0 };
-}
-fn eqri(args : (usize, usize, usize), regs : &mut Vec<usize>) {
-    regs[args.2] = if regs[args.0] == args.1 { 1 } else { 0 };
+enum Op {
+    Addr,
+    Addi,
+    Mulr,
+    Muli,
+    Banr,
+    Bani,
+    Borr,
+    Bori,
+    Setr,
+    Seti,
+    Gtrr,
+    Gtri,
+    Gtir,
+    Eqrr,
+    Eqri,
+    Eqir,
 }
 
-type OpFn = fn((usize, usize, usize), &mut Vec<usize>) -> ();
+impl Op {
+    fn from_name(name : &str) -> Op {
+        match name {
+            "addr" => Op::Addr,
+            "addi" => Op::Addi,
+            "mulr" => Op::Mulr,
+            "muli" => Op::Muli,
+            "banr" => Op::Banr,
+            "bani" => Op::Bani,
+            "borr" => Op::Borr,
+            "bori" => Op::Bori,
+            "setr" => Op::Setr,
+            "seti" => Op::Seti,
+            "gtrr" => Op::Gtrr,
+            "gtri" => Op::Gtri,
+            "gtir" => Op::Gtir,
+            "eqrr" => Op::Eqrr,
+            "eqri" => Op::Eqri,
+            "eqir" => Op::Eqir,
+            _ => panic!(),
+        }
+    }
+}

@@ -10,6 +10,7 @@ pub fn step1(input : String) {
 
 pub fn step2(input : String) {
     let nanobots = parse_input(input);
+    let nb = nanobots.len();
 
     let (first, others) = nanobots.split_first().unwrap();
 
@@ -17,18 +18,13 @@ pub fn step2(input : String) {
 
     for n in others {
         let p = Pyramid::from_center(&n.pos, n.radius);
-        let mut new_pyramids = vec![];
-        for (p0, nb) in pyramids {
-            let (boths, ones) = p0.intersect(&p);
-            for both in boths {
-                new_pyramids.push((both, nb + 1));
-            }
-            for one in ones {
-                new_pyramids.push((one, nb));
+        for (p0, nb) in pyramids.clone() {
+            if let Some(intersect) = p.intersect(&p0) {
+                pyramids.push((intersect, nb + 1));
             }
         }
-        pyramids = new_pyramids;
-        println!("{}", pyramids.len());
+        pyramids.sort_by(|p0, p1| p0.1.cmp(&p1.1).reverse());
+        pyramids.truncate(nb * 10);
     }
 
     pyramids.sort_by(|p0, p1| p0.1.cmp(&p1.1).reverse());
@@ -95,27 +91,20 @@ impl MinMax {
         self.min <= value && value <= self.max
     }
 
-    fn combine(&self, other : &MinMax) -> Vec<MinMax> {
-        if other.max < self.min || self.max < other.min {
-            return vec![self.clone(), other.clone()];
+    fn intersect(&self, other : &MinMax) -> Option<MinMax> {
+        let min = self.min.max(other.min);
+        let max = self.max.min(other.max);
+        if min <= max {
+            Some(MinMax {min, max})
+        } else {
+            None
         }
-        let mut vals = vec![self.min, self.max, other.min, other.max];
-        vals.sort();
-        let mut res = vec![];
-        if vals[0] < vals[1] {
-            res.push(MinMax{min: vals[0], max: vals[1]})
-        }
-        res.push(MinMax{min: vals[1], max: vals[2]});
-        if vals[2] < vals[3] {
-            res.push(MinMax{min: vals[2], max: vals[3]})
-        }
-        return res;
     }
 }
 
 #[derive(Copy, Clone, Debug)]
 struct Pyramid {
-//    ppp: MinMax,
+    ppp: MinMax,
     ppn: MinMax,
     pnp: MinMax,
     npp: MinMax,
@@ -124,7 +113,7 @@ struct Pyramid {
 impl Pyramid {
     pub fn from_center(center : &Coord, radius: i64) -> Pyramid {
         Pyramid {
-//            ppp: MinMax {min: center.x + center.y + center.z - radius, max: center.x + center.y + center.z + radius},
+            ppp: MinMax {min: center.x + center.y + center.z - radius, max: center.x + center.y + center.z + radius},
             ppn: MinMax {min: center.x + center.y - center.z - radius, max: center.x + center.y - center.z + radius},
             pnp: MinMax {min: center.x - center.y + center.z - radius, max: center.x - center.y + center.z + radius},
             npp: MinMax {min: -center.x + center.y + center.z - radius, max: -center.x + center.y + center.z + radius},
@@ -132,44 +121,21 @@ impl Pyramid {
     }
 
     pub fn contains(&self, point : &Coord) -> bool {
-//        self.ppp.includes(point.x + point.y + point.z) &&
+        self.ppp.includes(point.x + point.y + point.z) &&
         self.ppn.includes(point.x + point.y - point.z) &&
         self.pnp.includes(point.x - point.y + point.z) &&
         self.npp.includes(-point.x + point.y + point.z)
     }
 
-    pub fn intersect(&self, other : &Pyramid) -> (Vec<Pyramid>, Vec<Pyramid>) {
-//        let ppps = self.ppp.combine(&other.ppp);
-        let ppns = self.ppn.combine(&other.ppn);
-        let pnps = self.pnp.combine(&other.pnp);
-        let npps = self.npp.combine(&other.npp);
+    pub fn intersect(&self, other : &Pyramid) -> Option<Pyramid> {
+        let ppp = self.ppp.intersect(&other.ppp);
+        let ppn = self.ppn.intersect(&other.ppn);
+        let pnp = self.pnp.intersect(&other.pnp);
+        let npp = self.npp.intersect(&other.npp);
 
-        let mut both = vec![];
-        let mut one = vec![];
-
-//        for ppp in &ppps {
-//            let ppp_self = self.ppp.includes(ppp.min) && self.ppp.includes(ppp.max);
-//            let ppp_other = other.ppp.includes(ppp.min) && other.ppp.includes(ppp.max);
-            for ppn in &ppns {
-                let ppn_self = self.ppn.includes(ppn.min) && self.ppn.includes(ppn.max);
-                let ppn_other = other.ppn.includes(ppn.min) && other.ppn.includes(ppn.max);
-                for pnp in &pnps {
-                    let pnp_self = self.pnp.includes(pnp.min) && self.pnp.includes(pnp.max);
-                    let pnp_other = other.pnp.includes(pnp.min) && other.pnp.includes(pnp.max);
-                    for npp in &npps {
-                        let npp_self = self.npp.includes(npp.min) && self.npp.includes(npp.max);
-                        let npp_other = other.npp.includes(npp.min) && other.npp.includes(npp.max);
-                        let in_self = /*ppp_self &&*/ ppn_self && pnp_self && npp_self;
-                        let in_other = /*ppp_other &&*/ ppn_other && pnp_other && npp_other;
-                        if in_self && in_other {
-                            both.push(Pyramid{/*ppp: ppp.clone(),*/ ppn: ppn.clone(), pnp: pnp.clone(), npp: npp.clone()});
-                        } else if in_self || in_other {
-                            one.push(Pyramid{/*ppp: ppp.clone(),*/ ppn: ppn.clone(), pnp: pnp.clone(), npp: npp.clone()});
-                        }
-                    }
-                }
-            }
-//        }
-        return (both, one);
+        match (self.ppp.intersect(&other.ppp), self.ppn.intersect(&other.ppn), self.pnp.intersect(&other.pnp), self.npp.intersect(&other.npp)) {
+            (Some(ppp), Some(ppn), Some(pnp), Some(npp)) => Some(Pyramid {ppp, ppn, pnp, npp}),
+            _ => None,
+        }
     }
 }

@@ -87,10 +87,6 @@ struct MinMax {
 }
 
 impl MinMax {
-    fn includes(&self, value : i64) -> bool {
-        self.min <= value && value <= self.max
-    }
-
     fn intersect(&self, other : &MinMax) -> Option<MinMax> {
         let min = self.min.max(other.min);
         let max = self.max.min(other.max);
@@ -120,19 +116,7 @@ impl Pyramid {
         }
     }
 
-    pub fn contains(&self, point : &Coord) -> bool {
-        self.ppp.includes(point.x + point.y + point.z) &&
-        self.ppn.includes(point.x + point.y - point.z) &&
-        self.pnp.includes(point.x - point.y + point.z) &&
-        self.npp.includes(-point.x + point.y + point.z)
-    }
-
     pub fn intersect(&self, other : &Pyramid) -> Option<Pyramid> {
-        let ppp = self.ppp.intersect(&other.ppp);
-        let ppn = self.ppn.intersect(&other.ppn);
-        let pnp = self.pnp.intersect(&other.pnp);
-        let npp = self.npp.intersect(&other.npp);
-
         match (self.ppp.intersect(&other.ppp), self.ppn.intersect(&other.ppn), self.pnp.intersect(&other.pnp), self.npp.intersect(&other.npp)) {
             (Some(ppp), Some(ppn), Some(pnp), Some(npp)) => Some(Pyramid {ppp, ppn, pnp, npp}),
             _ => None,

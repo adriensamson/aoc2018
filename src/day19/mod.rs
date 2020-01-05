@@ -15,7 +15,6 @@ pub fn step1(input : String) {
 
 pub fn step2(input : String) {
     let mut program = Program::parse_prog(&input);
-    let mut state = State::init();
 
     println!("{:?}", program);
 
@@ -122,11 +121,12 @@ impl Program {
 
 impl fmt::Debug for Program {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        f.write_fmt(format_args!("ip <-> ${}\n", self.ip_reg));
+        f.write_fmt(format_args!("ip <-> ${}\n", self.ip_reg))?;
         for (i, inst) in self.instructions.iter().enumerate() {
-            f.write_fmt(format_args!("{}: {:?}", i, inst));
+            f.write_fmt(format_args!("{}: {:?}", i, inst))?;
         }
-        f.write_str("")
+        f.write_str("")?;
+        Ok(())
     }
 }
 

@@ -1,9 +1,8 @@
-use day19::{Program, State};
+use day19::Program;
 use std::collections::HashSet;
 
 pub fn step1(input : String) {
     let mut program = Program::parse_prog(&input);
-    let mut state = State::init();
 
     program.optimize();
 

@@ -33,7 +33,7 @@ pub fn step2(input : String) {
     println!("{}", sum);
 }
 
-struct Program {
+pub struct Program {
     ip_reg : usize,
     instructions : Vec<Instruction2>,
 }
@@ -71,7 +71,7 @@ impl Program {
         state.ip += 1;
     }
 
-    fn optimize(&mut self) {
+    pub fn optimize(&mut self) {
         self.inline_ip();
         self.inline_if();
     }
@@ -106,7 +106,9 @@ impl Program {
             if let (Instruction2::OpInstruction(op_inst1), Instruction2::OpInstruction(op_inst2)) = (&self.instructions[i-1], &self.instructions[i]) {
                 let new_inst = match (op_inst1.op, op_inst2.op) {
                     (Op::Eqrr, Op::Addi) if op_inst2.params.2 == self.ip_reg && op_inst1.params.2 == op_inst2.params.0 => Some(Instruction2::If(op_inst1.clone(), op_inst2.params.1)),
+                    (Op::Eqri, Op::Addi) if op_inst2.params.2 == self.ip_reg && op_inst1.params.2 == op_inst2.params.0 => Some(Instruction2::If(op_inst1.clone(), op_inst2.params.1)),
                     (Op::Gtrr, Op::Addi) if op_inst2.params.2 == self.ip_reg && op_inst1.params.2 == op_inst2.params.0 => Some(Instruction2::If(op_inst1.clone(), op_inst2.params.1)),
+                    (Op::Gtir, Op::Addi) if op_inst2.params.2 == self.ip_reg && op_inst1.params.2 == op_inst2.params.0 => Some(Instruction2::If(op_inst1.clone(), op_inst2.params.1)),
                     _ => None,
                 };
                 if let Some(inst2) = new_inst {
@@ -171,10 +173,10 @@ impl fmt::Debug for Instruction {
             Op::Addi => f.write_fmt(format_args!("${} = ${} + {}\n", self.params.2, self.params.0, self.params.1)),
             Op::Mulr => f.write_fmt(format_args!("${} = ${} * ${}\n", self.params.2, self.params.0, self.params.1)),
             Op::Muli => f.write_fmt(format_args!("${} = ${} * {}\n", self.params.2, self.params.0, self.params.1)),
-            Op::Banr => f.write_fmt(format_args!("${} = ${} && ${}\n", self.params.2, self.params.0, self.params.1)),
-            Op::Bani => f.write_fmt(format_args!("${} = ${} && {}\n", self.params.2, self.params.0, self.params.1)),
-            Op::Borr => f.write_fmt(format_args!("${} = ${} || ${}\n", self.params.2, self.params.0, self.params.1)),
-            Op::Bori => f.write_fmt(format_args!("${} = ${} || {}\n", self.params.2, self.params.0, self.params.1)),
+            Op::Banr => f.write_fmt(format_args!("${} = ${} & ${}\n", self.params.2, self.params.0, self.params.1)),
+            Op::Bani => f.write_fmt(format_args!("${} = ${} & {}\n", self.params.2, self.params.0, self.params.1)),
+            Op::Borr => f.write_fmt(format_args!("${} = ${} | ${}\n", self.params.2, self.params.0, self.params.1)),
+            Op::Bori => f.write_fmt(format_args!("${} = ${} | {}\n", self.params.2, self.params.0, self.params.1)),
             Op::Setr => f.write_fmt(format_args!("${} = ${}\n", self.params.2, self.params.0)),
             Op::Seti => f.write_fmt(format_args!("${} = {}\n", self.params.2, self.params.0)),
             Op::Gtrr => f.write_fmt(format_args!("${} = ${} > ${}\n", self.params.2, self.params.0, self.params.1)),
@@ -199,7 +201,7 @@ impl Instruction2 {
         match self {
             Instruction2::OpInstruction(inst) => inst.run(state),
             Instruction2::Goto(to) => state.ip = *to,
-            Instruction2::If(op, offset) => { op.run(state); state.ip = *offset + &state.regs[op.params.2]},
+            Instruction2::If(op, offset) => { op.run(state); state.ip = *offset + state.regs[op.params.2]},
         }
     }
 }
@@ -214,7 +216,7 @@ impl fmt::Debug for Instruction2 {
     }
 }
 
-struct State {
+pub struct State {
     ip : usize,
     regs : Vec<usize>,
 }
